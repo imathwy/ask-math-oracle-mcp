@@ -126,9 +126,16 @@ codex mcp get ask-math-oracle
   "provider": "auto",
   "context": "current Lean goals ...",
   "attempted": "tried nlinarith and ring_nf",
-  "style": "lean-friendly"
+  "style": "lean-friendly",
+  "max_output_tokens": "extended"
 }
 ```
+
+`max_output_tokens` 现在是选择项（不能自由填整数）：
+- `compact` = 1024
+- `balanced` = 2048（默认）
+- `extended` = 4096
+- `maximum` = 8192
 
 ## 常见问题
 

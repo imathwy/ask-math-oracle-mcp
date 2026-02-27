@@ -26,6 +26,13 @@ DEFAULT_GEMINI_MODEL = "gemini-2.5-pro"
 DEFAULT_TIMEOUT_SEC = 180.0
 FRAME_CONTENT_LENGTH = "content-length"
 FRAME_JSONL = "jsonl"
+TOKEN_BUDGET_MAP: dict[str, int] = {
+    "compact": 1024,
+    "balanced": 2048,
+    "extended": 4096,
+    "maximum": 8192,
+}
+DEFAULT_TOKEN_BUDGET = "balanced"
 
 
 TOOL_INPUT_SCHEMA: dict[str, Any] = {
@@ -77,11 +84,13 @@ TOOL_INPUT_SCHEMA: dict[str, Any] = {
             "default": "lean-friendly",
         },
         "max_output_tokens": {
-            "type": "integer",
-            "description": "Maximum output tokens for model generation.",
-            "minimum": 128,
-            "maximum": 32000,
-            "default": 1200,
+            "type": "string",
+            "enum": ["compact", "balanced", "extended", "maximum"],
+            "description": (
+                "Token budget preset (selection-only). "
+                "compact=1024, balanced=2048, extended=4096, maximum=8192."
+            ),
+            "default": "balanced",
         },
         "temperature": {
             "type": "number",
@@ -250,19 +259,18 @@ def _coerce_float(value: Any, *, default: float, min_v: float, max_v: float) -> 
     return out
 
 
-def _coerce_int(value: Any, *, default: int, min_v: int, max_v: int) -> int:
+def _coerce_token_budget(value: Any, *, default: str) -> str:
     if value is None:
         return default
-    if isinstance(value, bool):
-        raise ValueError("max_output_tokens must be an integer.")
-    if isinstance(value, int):
-        out = value
-    elif isinstance(value, str):
-        out = int(value.strip())
-    else:
-        raise ValueError("max_output_tokens must be an integer.")
-    if out < min_v or out > max_v:
-        raise ValueError(f"max_output_tokens must be in [{min_v}, {max_v}].")
+    if not isinstance(value, str):
+        raise ValueError(
+            "max_output_tokens must be one of: compact, balanced, extended, maximum."
+        )
+    out = value.strip().lower()
+    if out not in TOKEN_BUDGET_MAP:
+        raise ValueError(
+            "max_output_tokens must be one of: compact, balanced, extended, maximum."
+        )
     return out
 
 
@@ -499,12 +507,11 @@ class MathOracle:
         if style not in {"direct", "detailed", "proof-sketch", "lean-friendly"}:
             raise ValueError("style must be one of: direct, detailed, proof-sketch, lean-friendly.")
 
-        max_output_tokens = _coerce_int(
+        token_budget = _coerce_token_budget(
             arguments.get("max_output_tokens"),
-            default=1200,
-            min_v=128,
-            max_v=32000,
+            default=DEFAULT_TOKEN_BUDGET,
         )
+        max_output_tokens = TOKEN_BUDGET_MAP[token_budget]
         temperature = _coerce_float(
             arguments.get("temperature"),
             default=0.2,
@@ -551,6 +558,8 @@ class MathOracle:
                     "anthropic": anthropic_model,
                     "gemini": gemini_model,
                 },
+                "token_budget": token_budget,
+                "max_output_tokens_resolved": max_output_tokens,
                 "prompt_preview": {"system": system_prompt, "user": user_prompt},
                 "key_presence": {
                     "openai": bool(self.cfg.openai_api_key),
@@ -563,6 +572,8 @@ class MathOracle:
                     "DRY RUN: no external API call executed.",
                     f"provider_requested={provider}",
                     f"provider_plan={','.join(plan)}",
+                    f"token_budget={token_budget}",
+                    f"max_output_tokens_resolved={max_output_tokens}",
                     f"openai_key_present={bool(self.cfg.openai_api_key)}",
                     f"anthropic_key_present={bool(self.cfg.anthropic_api_key)}",
                     f"gemini_key_present={bool(self.cfg.google_api_key)}",
@@ -644,6 +655,8 @@ class MathOracle:
             ],
             "warnings": errors,
             "dry_run": False,
+            "token_budget": token_budget,
+            "max_output_tokens_resolved": max_output_tokens,
         }
         if include_prompt_preview:
             structured["prompt_preview"] = {"system": system_prompt, "user": user_prompt}
