@@ -49,6 +49,8 @@ curl -fsSL https://raw.githubusercontent.com/imathwy/ask-math-oracle-mcp/main/sc
 bash scripts/one_click_install.sh --repo-url /path/to/ask-math-oracle-mcp --google-key "$GOOGLE_API_KEY"
 ```
 
+说明：如果你显式传了 `--google-key/--openai-key/--anthropic-key`，脚本只会使用你显式传的 provider，不会额外读取其他环境变量中的 key。
+
 ### 方案 B：clone 后一条命令
 
 ```bash

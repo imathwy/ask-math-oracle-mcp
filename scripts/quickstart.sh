@@ -9,6 +9,9 @@ MCP_STARTUP_TIMEOUT_SEC="${MCP_STARTUP_TIMEOUT_SEC:-60}"
 OPENAI_KEY="${ASK_MATH_ORACLE_OPENAI_API_KEY:-${OPENAI_API_KEY:-}}"
 ANTHROPIC_KEY="${ASK_MATH_ORACLE_ANTHROPIC_API_KEY:-${ANTHROPIC_API_KEY:-}}"
 GOOGLE_KEY="${ASK_MATH_ORACLE_GOOGLE_API_KEY:-${GOOGLE_API_KEY:-}}"
+EXPLICIT_OPENAI=0
+EXPLICIT_ANTHROPIC=0
+EXPLICIT_GOOGLE=0
 
 usage() {
   cat <<'EOF'
@@ -33,14 +36,17 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --openai-key)
       OPENAI_KEY="${2:-}"
+      EXPLICIT_OPENAI=1
       shift 2
       ;;
     --anthropic-key)
       ANTHROPIC_KEY="${2:-}"
+      EXPLICIT_ANTHROPIC=1
       shift 2
       ;;
     --google-key)
       GOOGLE_KEY="${2:-}"
+      EXPLICIT_GOOGLE=1
       shift 2
       ;;
     --mcp-name)
@@ -58,6 +64,14 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+# If any key is explicitly passed via CLI flags, only use explicitly passed keys.
+# This avoids accidentally mixing providers from ambient shell env vars.
+if [[ "$EXPLICIT_OPENAI" -eq 1 || "$EXPLICIT_ANTHROPIC" -eq 1 || "$EXPLICIT_GOOGLE" -eq 1 ]]; then
+  [[ "$EXPLICIT_OPENAI" -eq 1 ]] || OPENAI_KEY=""
+  [[ "$EXPLICIT_ANTHROPIC" -eq 1 ]] || ANTHROPIC_KEY=""
+  [[ "$EXPLICIT_GOOGLE" -eq 1 ]] || GOOGLE_KEY=""
+fi
 
 if [[ -z "${OPENAI_KEY}" && -z "${ANTHROPIC_KEY}" && -z "${GOOGLE_KEY}" ]]; then
   echo "No API key found in env or CLI flags." >&2
