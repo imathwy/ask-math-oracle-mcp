@@ -1,125 +1,107 @@
 # ask_math_oracle MCP
 
-`ask_math_oracle MCP` 是一个轻量 `stdio MCP server`，对外暴露一个工具：
+`ask_math_oracle MCP` 是一个轻量 `stdio MCP server`，提供工具：
 
 - `ask_math_oracle`
 
-它用于在遇到数学 blocker 时，自动向更擅长数学自然语言推理的模型请求帮助（OpenAI/Claude/Gemini）。
+用于在数学 blocker 时，向 OpenAI / Claude / Gemini 请求辅助推理。
 
-## 1. 目录结构
+## 远端仓库
 
-```text
-ask_math_oracle_mcp/
-  ask_math_oracle_mcp/
-    __init__.py
-    __main__.py
-    server.py
-  scripts/
-    register_codex_mcp.sh
-    smoke_test.py
-  pyproject.toml
-```
+- GitHub: `https://github.com/imathwy/ask-math-oracle-mcp`
 
-## 2. 环境变量
+## 一键配置（推荐）
 
-- `ASK_MATH_ORACLE_OPENAI_API_KEY` 或 `OPENAI_API_KEY`
-- `ASK_MATH_ORACLE_ANTHROPIC_API_KEY` 或 `ANTHROPIC_API_KEY`
-- `ASK_MATH_ORACLE_GOOGLE_API_KEY` 或 `GOOGLE_API_KEY`
-- `ASK_MATH_ORACLE_OPENAI_BASE_URL`（可选，默认 `https://api.openai.com/v1`）
-- `ASK_MATH_ORACLE_OPENAI_MODEL`（可选，默认 `gpt-5-pro`）
-- `ASK_MATH_ORACLE_ANTHROPIC_BASE_URL`（可选，默认 `https://api.anthropic.com`）
-- `ASK_MATH_ORACLE_ANTHROPIC_MODEL`（可选，默认 `claude-opus-4-1`）
-- `ASK_MATH_ORACLE_ANTHROPIC_VERSION`（可选，默认 `2023-06-01`）
-- `ASK_MATH_ORACLE_GEMINI_MODEL`（可选，默认 `gemini-2.5-pro`）
-- `ASK_MATH_ORACLE_TIMEOUT_SEC`（可选，默认 `180`）
-- `ASK_MATH_ORACLE_REASONING_EFFORT`（可选，OpenAI only）
-- `ASK_MATH_ORACLE_DEBUG_MCP`（可选，`1` 时输出启动/方法调试日志到 stderr）
+前置依赖：`git`、`python3`、`codex`。
 
-## 3. 本地协议测试（不访问外网）
+### 方案 A：真正一条命令（无需先 clone）
 
-`dry_run=true` 下不调用外部 API，只验证 MCP 协议与工具结构是否正常：
+Gemini:
 
 ```bash
-cd /root/workspace/wzc/main_book_formalization/codex_agent_bookformalization/_worktrees/ask_math_oracle_mcp
+curl -fsSL https://raw.githubusercontent.com/imathwy/ask-math-oracle-mcp/main/scripts/one_click_install.sh | bash -s -- --google-key "$GOOGLE_API_KEY"
+```
+
+OpenAI:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/imathwy/ask-math-oracle-mcp/main/scripts/one_click_install.sh | bash -s -- --openai-key "$OPENAI_API_KEY"
+```
+
+Claude:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/imathwy/ask-math-oracle-mcp/main/scripts/one_click_install.sh | bash -s -- --anthropic-key "$ANTHROPIC_API_KEY"
+```
+
+多模型一起配置：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/imathwy/ask-math-oracle-mcp/main/scripts/one_click_install.sh | bash -s -- \
+  --openai-key "$OPENAI_API_KEY" \
+  --anthropic-key "$ANTHROPIC_API_KEY" \
+  --google-key "$GOOGLE_API_KEY"
+```
+
+### 方案 B：clone 后一条命令
+
+```bash
+git clone https://github.com/imathwy/ask-math-oracle-mcp.git
+cd ask-math-oracle-mcp
+./scripts/quickstart.sh --google-key "$GOOGLE_API_KEY"
+```
+
+`quickstart.sh` 会自动：
+
+1. 调用 `codex mcp add` 注册 `ask-math-oracle`
+2. 写入 `startup_timeout_sec` 到当前 `CODEX_HOME/config.toml`
+3. 回显最终注册结果
+
+配置完成后请重启一次 Codex 会话（MCP 进程不会热更新）。
+
+## 验证是否生效
+
+```bash
+codex mcp get ask-math-oracle
+```
+
+预期可见：
+
+- `enabled: true`
+- `command: python3 .../ask_math_oracle_mcp/server.py`
+- 至少一个 `ASK_MATH_ORACLE_*_API_KEY`
+
+## 工具调用示例
+
+```json
+{
+  "problem": "I am stuck proving a monotonicity inequality.",
+  "provider": "auto",
+  "context": "current Lean goals ...",
+  "attempted": "tried nlinarith and ring_nf",
+  "style": "lean-friendly"
+}
+```
+
+## 常见问题
+
+`MCP startup failed: handshaking with MCP server failed: connection closed: initialize response`
+
+- 确认使用本仓库最新版本（已兼容 JSONL / Content-Length 双向握手）
+- 重启 Codex 会话再试
+
+`provider=gemini` 但调用失败
+
+- 先看 `codex mcp get ask-math-oracle` 是否存在 `ASK_MATH_ORACLE_GOOGLE_API_KEY`
+- 若没有，重新执行：
+
+```bash
+./scripts/quickstart.sh --google-key "$GOOGLE_API_KEY"
+```
+
+## 本地开发自检
+
+```bash
 python3 scripts/smoke_test.py
+python3 -m compileall ask_math_oracle_mcp
 ```
-
-## 4. 注册到 Codex CLI
-
-最简方案（推荐）：
-
-```bash
-cd /root/workspace/wzc/main_book_formalization/codex_agent_bookformalization/_worktrees/ask_math_oracle_mcp
-./scripts/quickstart.sh --openai-key "$OPENAI_API_KEY"
-```
-
-也可交互输入（不带参数运行）：
-
-```bash
-./scripts/quickstart.sh
-```
-
-标准注册脚本：
-
-```bash
-cd /root/workspace/wzc/main_book_formalization/codex_agent_bookformalization/_worktrees/ask_math_oracle_mcp
-chmod +x scripts/register_codex_mcp.sh
-./scripts/register_codex_mcp.sh
-```
-
-默认注册名：`ask-math-oracle`。可传自定义名字：
-
-```bash
-./scripts/register_codex_mcp.sh ask-math-oracle-dev
-```
-
-可选：设置启动超时（默认 60 秒）：
-
-```bash
-MCP_STARTUP_TIMEOUT_SEC=90 ./scripts/quickstart.sh --openai-key "$OPENAI_API_KEY"
-```
-
-说明：`register_codex_mcp.sh` 会自动把 `startup_timeout_sec` 写入当前 `CODEX_HOME/config.toml` 中对应的 MCP 条目。
-
-## 5. 故障排查
-
-若看到：
-
-```text
-MCP startup failed: handshaking with MCP server failed: connection closed: initialize response
-```
-
-请确认两点：
-
-1. 已更新到当前版本（支持 JSONL 与 Content-Length 双向握手）。
-2. 重启 Codex 会话后再试（旧进程不会自动热更新）。
-
-快速自检：
-
-```bash
-cd /root/workspace/wzc/main_book_formalization/codex_agent_bookformalization/_worktrees/ask_math_oracle_mcp
-python3 scripts/smoke_test.py
-```
-
-## 6. 工具入参（核心）
-
-- `problem` (required): 数学 blocker 原始问题
-- `provider`: `auto | openai | anthropic | gemini | both | all`
-- `context`: 上下文
-- `goal`: 目标
-- `attempted`: 已尝试方案
-- `style`: `direct | detailed | proof-sketch | lean-friendly`
-- `max_output_tokens`
-- `temperature`
-- `reasoning_effort` (OpenAI)
-- `allow_fallback` (`provider=auto` 时失败是否切另一家)
-- `include_prompt_preview`
-- `dry_run`
-
-## 7. 在代理中的调用建议
-
-当你在 AGENTS 规则里定义“数学阻塞触发外援”时，可采用：
-
-- 条件：同一证明目标连续 `N` 次无推进（例如 N=2）
-- 动作：调用 `ask_math_oracle`，传入 `problem/context/attempted`
-- 约束：优先 `provider=auto`，关键问题可设 `provider=all` 交叉参考
