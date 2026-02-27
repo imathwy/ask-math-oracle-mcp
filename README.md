@@ -43,6 +43,12 @@ curl -fsSL https://raw.githubusercontent.com/imathwy/ask-math-oracle-mcp/main/sc
   --google-key "$GOOGLE_API_KEY"
 ```
 
+离线/内网场景可以先下载脚本，再指定仓库地址：
+
+```bash
+bash scripts/one_click_install.sh --repo-url /path/to/ask-math-oracle-mcp --google-key "$GOOGLE_API_KEY"
+```
+
 ### 方案 B：clone 后一条命令
 
 ```bash
