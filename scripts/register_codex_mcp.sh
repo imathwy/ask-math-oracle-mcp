@@ -6,21 +6,34 @@ SERVER_PY="$ROOT_DIR/ask_math_oracle_mcp/server.py"
 MCP_NAME="${1:-ask-math-oracle}"
 MCP_STARTUP_TIMEOUT_SEC="${MCP_STARTUP_TIMEOUT_SEC:-60}"
 
+if [[ "${MCP_STARTUP_TIMEOUT_SEC}" =~ ^[0-9]+$ ]]; then
+  if [[ "${MCP_STARTUP_TIMEOUT_SEC}" -lt 1 ]]; then
+    echo "ERROR: MCP_STARTUP_TIMEOUT_SEC must be >= 1." >&2
+    exit 1
+  fi
+else
+  echo "ERROR: MCP_STARTUP_TIMEOUT_SEC must be a positive integer." >&2
+  exit 1
+fi
+
+ask_key_namespace_present=0
 if [[ "${ASK_MATH_ORACLE_OPENAI_API_KEY+x}" == "x" ]]; then
-  OPENAI_KEY="${ASK_MATH_ORACLE_OPENAI_API_KEY}"
+  ask_key_namespace_present=1
+fi
+if [[ "${ASK_MATH_ORACLE_ANTHROPIC_API_KEY+x}" == "x" ]]; then
+  ask_key_namespace_present=1
+fi
+if [[ "${ASK_MATH_ORACLE_GOOGLE_API_KEY+x}" == "x" ]]; then
+  ask_key_namespace_present=1
+fi
+
+if [[ "${ask_key_namespace_present}" -eq 1 ]]; then
+  OPENAI_KEY="${ASK_MATH_ORACLE_OPENAI_API_KEY:-}"
+  ANTHROPIC_KEY="${ASK_MATH_ORACLE_ANTHROPIC_API_KEY:-}"
+  GOOGLE_KEY="${ASK_MATH_ORACLE_GOOGLE_API_KEY:-}"
 else
   OPENAI_KEY="${OPENAI_API_KEY:-}"
-fi
-
-if [[ "${ASK_MATH_ORACLE_ANTHROPIC_API_KEY+x}" == "x" ]]; then
-  ANTHROPIC_KEY="${ASK_MATH_ORACLE_ANTHROPIC_API_KEY}"
-else
   ANTHROPIC_KEY="${ANTHROPIC_API_KEY:-}"
-fi
-
-if [[ "${ASK_MATH_ORACLE_GOOGLE_API_KEY+x}" == "x" ]]; then
-  GOOGLE_KEY="${ASK_MATH_ORACLE_GOOGLE_API_KEY}"
-else
   GOOGLE_KEY="${GOOGLE_API_KEY:-}"
 fi
 

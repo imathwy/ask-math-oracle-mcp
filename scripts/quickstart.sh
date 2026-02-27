@@ -34,7 +34,7 @@ EOF
 
 require_value() {
   local opt="$1"
-  if [[ "${2+x}" != "x" ]]; then
+  if [[ "${2+x}" != "x" || "$2" == --* ]]; then
     echo "Missing value for ${opt}" >&2
     usage >&2
     exit 1

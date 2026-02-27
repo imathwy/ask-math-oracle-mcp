@@ -50,6 +50,7 @@ bash scripts/one_click_install.sh --repo-url /path/to/ask-math-oracle-mcp --goog
 ```
 
 说明：如果你显式传了 `--google-key/--openai-key/--anthropic-key`，脚本只会使用你显式传的 provider，不会额外读取其他环境变量中的 key。
+另外：`MCP_STARTUP_TIMEOUT_SEC` 必须是正整数（秒）。
 
 ### 方案 B：clone 后一条命令
 
