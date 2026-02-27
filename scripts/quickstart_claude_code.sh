@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REGISTER_SH="$ROOT_DIR/scripts/register_claude_code_mcp.sh"
+MCP_NAME="${MCP_NAME:-ask-math-oracle}"
+CLAUDE_SCOPE="${CLAUDE_SCOPE:-user}"
+
+OPENAI_KEY="${ASK_MATH_ORACLE_OPENAI_API_KEY:-${OPENAI_API_KEY:-}}"
+ANTHROPIC_KEY="${ASK_MATH_ORACLE_ANTHROPIC_API_KEY:-${ANTHROPIC_API_KEY:-}}"
+GOOGLE_KEY="${ASK_MATH_ORACLE_GOOGLE_API_KEY:-${GOOGLE_API_KEY:-}}"
+EXPLICIT_OPENAI=0
+EXPLICIT_ANTHROPIC=0
+EXPLICIT_GOOGLE=0
+
+usage() {
+  cat <<'EOF'
+Usage:
+  ./scripts/quickstart_claude_code.sh [options]
+
+Options:
+  --openai-key <KEY>      Set OpenAI key for this run
+  --anthropic-key <KEY>   Set Anthropic key for this run
+  --google-key <KEY>      Set Google key for this run
+  --mcp-name <NAME>       MCP server name (default: ask-math-oracle)
+  --scope <SCOPE>         Claude MCP scope: user | project | local (default: user)
+  -h, --help              Show this help
+EOF
+}
+
+require_value() {
+  local opt="$1"
+  if [[ "${2+x}" != "x" || "$2" == --* ]]; then
+    echo "Missing value for ${opt}" >&2
+    usage >&2
+    exit 1
+  fi
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --openai-key)
+      require_value "$@"
+      OPENAI_KEY="${2:-}"
+      EXPLICIT_OPENAI=1
+      shift 2
+      ;;
+    --anthropic-key)
+      require_value "$@"
+      ANTHROPIC_KEY="${2:-}"
+      EXPLICIT_ANTHROPIC=1
+      shift 2
+      ;;
+    --google-key)
+      require_value "$@"
+      GOOGLE_KEY="${2:-}"
+      EXPLICIT_GOOGLE=1
+      shift 2
+      ;;
+    --mcp-name)
+      require_value "$@"
+      MCP_NAME="${2:-ask-math-oracle}"
+      shift 2
+      ;;
+    --scope)
+      require_value "$@"
+      CLAUDE_SCOPE="${2:-user}"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [[ "$EXPLICIT_OPENAI" -eq 1 || "$EXPLICIT_ANTHROPIC" -eq 1 || "$EXPLICIT_GOOGLE" -eq 1 ]]; then
+  [[ "$EXPLICIT_OPENAI" -eq 1 ]] || OPENAI_KEY=""
+  [[ "$EXPLICIT_ANTHROPIC" -eq 1 ]] || ANTHROPIC_KEY=""
+  [[ "$EXPLICIT_GOOGLE" -eq 1 ]] || GOOGLE_KEY=""
+fi
+
+if [[ -z "${OPENAI_KEY}" && -z "${ANTHROPIC_KEY}" && -z "${GOOGLE_KEY}" ]]; then
+  echo "No API key found in env or CLI flags." >&2
+  echo "Quick input mode: paste ONE key to continue." >&2
+  read -r -p "Provider [openai/anthropic/google] (default: google): " provider
+  provider="${provider:-google}"
+  case "${provider}" in
+    openai)
+      read -r -s -p "OpenAI API key: " OPENAI_KEY
+      echo
+      ;;
+    anthropic)
+      read -r -s -p "Anthropic API key: " ANTHROPIC_KEY
+      echo
+      ;;
+    google)
+      read -r -s -p "Google API key: " GOOGLE_KEY
+      echo
+      ;;
+    *)
+      echo "Unsupported provider: ${provider}" >&2
+      exit 1
+      ;;
+  esac
+fi
+
+if [[ -z "${OPENAI_KEY}" && -z "${ANTHROPIC_KEY}" && -z "${GOOGLE_KEY}" ]]; then
+  echo "At least one key is required." >&2
+  exit 1
+fi
+
+export ASK_MATH_ORACLE_OPENAI_API_KEY="${OPENAI_KEY:-}"
+export ASK_MATH_ORACLE_ANTHROPIC_API_KEY="${ANTHROPIC_KEY:-}"
+export ASK_MATH_ORACLE_GOOGLE_API_KEY="${GOOGLE_KEY:-}"
+export CLAUDE_SCOPE
+
+cd "$ROOT_DIR"
+"$REGISTER_SH" --mcp-name "$MCP_NAME" --scope "$CLAUDE_SCOPE"

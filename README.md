@@ -68,6 +68,44 @@ cd ask-math-oracle-mcp
 
 配置完成后请重启一次 Codex 会话（MCP 进程不会热更新）。
 
+## Claude Code 用户一键配置
+
+前置依赖：`git`、`python3`、`claude`（Claude Code CLI）。
+
+Gemini（推荐）：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/imathwy/ask-math-oracle-mcp/main/scripts/one_click_install_claude_code.sh | bash -s -- --google-key "$GOOGLE_API_KEY"
+```
+
+OpenAI：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/imathwy/ask-math-oracle-mcp/main/scripts/one_click_install_claude_code.sh | bash -s -- --openai-key "$OPENAI_API_KEY"
+```
+
+Anthropic：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/imathwy/ask-math-oracle-mcp/main/scripts/one_click_install_claude_code.sh | bash -s -- --anthropic-key "$ANTHROPIC_API_KEY"
+```
+
+可选 scope：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/imathwy/ask-math-oracle-mcp/main/scripts/one_click_install_claude_code.sh | bash -s -- --scope user --google-key "$GOOGLE_API_KEY"
+```
+
+`--scope` 可选值：`user | project | local`（默认 `user`）。
+
+安装后验证：
+
+```bash
+claude mcp list
+```
+
+如果看到 `ask-math-oracle` 且 command 指向 `python3 .../server.py`，说明配置成功。
+
 ## 验证是否生效
 
 ```bash
