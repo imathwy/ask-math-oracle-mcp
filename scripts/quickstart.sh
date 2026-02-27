@@ -32,24 +32,37 @@ Examples:
 EOF
 }
 
+require_value() {
+  local opt="$1"
+  if [[ "${2+x}" != "x" ]]; then
+    echo "Missing value for ${opt}" >&2
+    usage >&2
+    exit 1
+  fi
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --openai-key)
+      require_value "$@"
       OPENAI_KEY="${2:-}"
       EXPLICIT_OPENAI=1
       shift 2
       ;;
     --anthropic-key)
+      require_value "$@"
       ANTHROPIC_KEY="${2:-}"
       EXPLICIT_ANTHROPIC=1
       shift 2
       ;;
     --google-key)
+      require_value "$@"
       GOOGLE_KEY="${2:-}"
       EXPLICIT_GOOGLE=1
       shift 2
       ;;
     --mcp-name)
+      require_value "$@"
       MCP_NAME="${2:-ask-math-oracle}"
       shift 2
       ;;

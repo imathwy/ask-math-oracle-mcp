@@ -21,14 +21,25 @@ Examples:
 EOF
 }
 
+require_value() {
+  local opt="$1"
+  if [[ "${2+x}" != "x" ]]; then
+    echo "Missing value for ${opt}" >&2
+    usage >&2
+    exit 1
+  fi
+}
+
 quickstart_args=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --repo-url)
+      require_value "$@"
       REPO_URL="${2:-}"
       shift 2
       ;;
     --target-dir)
+      require_value "$@"
       TARGET_DIR="${2:-}"
       shift 2
       ;;
